@@ -120,13 +120,13 @@ class Deck{
 
   Deck(){
     _initDeck();
-    shuffleDeck();
+    // shuffleDeck();
   }
 
   void _initDeck(){
     CardSuit.values.forEach((suit) {
       CardType.values.forEach((type) {
-        cards.add(PlayingCard(type: type, suit: suit));
+        cards.add(PlayingCard(type: type, suit: suit, faceUp: true));
       });
     });
   }

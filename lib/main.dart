@@ -19,11 +19,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class GameScreen extends StatelessWidget{
+class GameScreen extends StatelessWidget{ 
 
   final Deck _deck = Deck();
 
-  PlayingCardWidget _playingCardWidget = null;
+  bool isGameWon = false;
+
+  void checkWinCondition(){
+   //TODO implement winning check
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,39 +51,42 @@ class GameScreen extends StatelessWidget{
                   ),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: DragTarget<PlayingCardWidget>(
-                      onWillAccept: (data) {
-                        print(data);
-                        return true;
-                      },
-                      onAccept: (data) {
-                        this._playingCardWidget = data;
-                      },
-                      builder: (context, candidateData, rejectedData) {
-                        return _playingCardWidget??  Container(
-                          width: 50,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white),
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                        );
-                      },
-                    ),
+                    child: Row(
+                      children: [
+                        CardPlaceCell(),
+                        SizedBox(width: 10,),
+                        CardPlaceCell(),
+                        SizedBox(width: 10,),
+                        CardPlaceCell(),
+                        SizedBox(width: 10,),
+                        CardPlaceCell(),
+                      ],
+                    )
                   ),
                 ],
               ),
-              Align(
-                alignment: Alignment.center,
-                child: PlayingCardWidget(card: PlayingCard(type: CardType.ace, suit: CardSuit.clubs, faceUp: true),),
-              )
+              Flexible(
+                child: GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4
+                ),
+                itemCount: _deck.cards.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Center(
+                        child: PlayingCardWidget(card: _deck.cards[index],),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-
 }
 
 class PlayingCardWidget extends StatefulWidget {
@@ -94,10 +101,13 @@ class PlayingCardWidget extends StatefulWidget {
 
 class _PlayingCardWidgetState extends State<PlayingCardWidget> {
 
-  final double width = 50;
-  final double height = 80;
+  static const double width = 50;
+  static const double height = 80;
+
+  bool draged = false;
 
   Widget _faceDownWidget(){
+    
     return Container(
       width: width,
       height: height,
@@ -141,11 +151,83 @@ class _PlayingCardWidgetState extends State<PlayingCardWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.card.faceUp? Draggable<PlayingCardWidget>(
-      data: widget,
-      childWhenDragging: Container(),
-      feedback: _faceUpWidget(),
-      child: _faceUpWidget(),
+    return widget.card.faceUp? Visibility(
+      visible: !draged,
+      child: Draggable<PlayingCardWidget>(
+        data: widget,
+        childWhenDragging: Container(),
+        feedback: _faceUpWidget(),
+        child: _faceUpWidget(),
+        onDragEnd: (details) {
+        },
+        onDragCompleted: () {
+          setState(() {
+            draged = true;            
+          });
+        },
+      ),
     ): _faceDownWidget();
+  }
+}
+
+class CardPlaceCell extends StatefulWidget {
+  @override
+  _CardPlaceCellState createState() => _CardPlaceCellState();
+}
+
+class _CardPlaceCellState extends State<CardPlaceCell> {
+  PlayingCardWidget _playingCard = null;
+  CardSuit _cardSuit = null;
+
+  CardType _getNextCard(){
+    if(lastCard()){
+      return null;
+    }
+    return CardType.values[CardType.values.indexOf(_playingCard.card.type) + 1];
+  }
+
+  bool lastCard(){
+    return _playingCard.card.type == CardType.king;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<PlayingCardWidget>(
+      onWillAccept: (data) {
+        if(_playingCard == null){
+          return data.card.type == CardType.ace;
+        }
+        else{
+          if(_cardSuit != data.card.suit){
+            return false;
+          }
+          else{
+            CardType neededType = _getNextCard();
+            if(neededType == null){
+              return false;
+            }
+            else{
+              return data.card.type == neededType;
+            }
+          }
+        }
+      },
+      onAccept: (data) {
+        if(_cardSuit == null){
+          _cardSuit = data.card.suit;
+        }
+        _playingCard = data;
+      },
+      builder: (context, candidateData, rejectedData) {
+        return _playingCard??  Container(
+          width: _PlayingCardWidgetState.width,
+          height: _PlayingCardWidgetState.height,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.white),
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+        );
+      },
+    );
   }
 }
